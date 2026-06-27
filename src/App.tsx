@@ -5,33 +5,49 @@ const API_KEY = import.meta.env.VITE_OPENWEATHERMAP_API_KEY
 
 function App() {
   const [city, setCity] = useState('');
+  // Estado para guardar las sugerencias encontradas
+  const [suggestions, setSuggestions] = useState([]);
+  // Estado para manejar cuando se muestran las sugerencias existentes
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  useEffect(async () => {
-    try {
-      const response = await
-    } catch (err) {
-      
+  useEffect(() => {
+    const fetchSuggestions = async () => {
+      // Mantener array que almacena las sugerencias vacío hasta que hayan más de 2 caracteres
+      if (city.length < 2) {
+        setSuggestions([]);
+      }
+      try {
+        const response = await fetch(`https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(city)}&limit=5&appid=${API_KEY}`);
+        const weatherSuggestions = await response.json();
+        setSuggestions(weatherSuggestions);
+        setShowSuggestions(true);
+      } catch (err) {
+        console.error('Error: No se han podido obtener sugerencias', err);        
+      }
     }
-  }, []);
+    // Agregar delay de 3 segundos cuando el usuario deja de escribir
+    const timeoutId = setTimeout(fetchSuggestions, 300);
+    // Limpiar timeout una vez ha sido ejecutado
+    return () => clearTimeout(timeoutId);
+  // Ejecutar el useEffect cuando cambie el valor del estado 'city'
+  }, [city]);
 
-  // Se utiliza 'ev: React.FormEvent<HTMLFormElement>' para indicar a TypeScript que estamos utilizando form submission
-  const handleSubmit = async (ev: React.FormEvent<HTMLFormElement>) => {
-    ev.preventDefault();
+  const fetchWeather = async (city) => {
 
     // Cambiar valor del estado "loading" a true ya que se está esperando a obtener los datos
     setLoading(true);
-
+  
     // Limpiar posibles errores anteriores
     setError(null);
-
+  
     try {
       const response = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(city)}&appid=${API_KEY}&units=metric&lang=es`);
-
+  
       if(!response.ok) throw new Error('La ciudad no ha sido encontrada');
-
+  
       const waeatherData = await response.json();
       console.log('Datos obtenidos: ', waeatherData);
       setData(waeatherData);
@@ -43,6 +59,16 @@ function App() {
       // Volver a cambiar el estado 'loading' a false ya que se ha terminado de realizar la petición
       setLoading(false);
     }
+  }
+
+  // Función para obtener los datos de la ciudad introducida por el usuario 
+  // Se utiliza 'ev: React.FormEvent<HTMLFormElement>' para indicar a TypeScript que estamos utilizando form submission
+  const handleSubmit = async (ev: React.FormEvent<HTMLFormElement>) => {
+    ev.preventDefault();
+    // Cambiar valor del estado 'showSuggestions' a false ya que una vez se están obteniendo los datos de la ciudad
+    // no es necesario que se muestren las sugerencias 
+    setShowSuggestions(false);
+    fetchWeather(city);
   };
 
   return (
@@ -56,6 +82,8 @@ function App() {
           value={city}
           // Almacenar en el estado 'city' el contenido introducido en el input
           onChange={(ev) => setCity(ev.target.value)}
+          // Mostrar desplegable de sugerencias solo si el array no está vacío
+          onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
           placeholder='Introduce una ciudad...'
           className="h-9 min-w-0 rounded-md border border-gray-100/40 bg-transparent px-3 py-1 text-base shadow-xs w-md outline-none selection:bg-primary selection:text-primary-foreground file:inline-flex file:h-7 file:border-0 
             focus-visible:ring-[3px] focus-visible:ring-gray-400/40" />
