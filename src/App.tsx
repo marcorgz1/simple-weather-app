@@ -15,13 +15,17 @@ function App() {
 
   useEffect(() => {
     const fetchSuggestions = async () => {
-      // Mantener array que almacena las sugerencias vacío hasta que hayan más de 2 caracteres
+      // Si la longitud del input en el que se escribe la ciudad tiene menos de 2 caracteres
       if (city.length < 2) {
+        // Mantener array que almacena las sugerencias vacío
         setSuggestions([]);
+        // Parar la ejecución aquí evitando que aparezca un error 400 al hacer la petición a la API con el array vacío
+        return;
       }
       try {
         const response = await fetch(`https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(city)}&limit=5&appid=${API_KEY}`);
         const weatherSuggestions = await response.json();
+        console.log('Weather suggestions: ', weatherSuggestions);
         setSuggestions(weatherSuggestions);
         setShowSuggestions(true);
       } catch (err) {
@@ -94,6 +98,23 @@ function App() {
           {loading ? 'Buscando...' : 'Buscar'}
         </button>
       </form>
+      {/* Dropdown con sugerencias */}
+      {
+        showSuggestions && (
+          <ul>
+          {
+            suggestions.map((suggestion, index) => (
+              <li key={index}>
+                <span>{suggestion.name}</span>
+                <span>{suggestion.state}</span>
+                <span>{suggestion.country}</span>
+              </li>
+            ))
+          }
+          </ul>
+        )
+      }
+      <section></section>
       {/* Sección para mostrar la información obtenida o los posibles errores existentes */}
       <section className="mt-6">
         {error && <p className="text-red-600">{error}</p>}
